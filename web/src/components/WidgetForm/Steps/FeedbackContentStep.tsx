@@ -1,32 +1,45 @@
 import { ArrowLeft, Camera } from "phosphor-react";
 import { FormEvent, useState } from "react";
 import { FeedbackType, feedbackTypes } from "..";
+import { api } from "../../../service/api";
 import { CloseButton } from "../../CloseButton";
+import { Loading } from "../../Loading";
 import { ScreenshotButton } from "../ScreenshotButton";
 
 interface FeedbackContentStepProps {
     feedbackType: FeedbackType;
     onFeedbackRestartRequested: () => void;
-    onFeedbackSent: ()=>void;
+    onFeedbackSent: () => void;
 }
 
 export function FeedbackContentStep({ feedbackType, onFeedbackRestartRequested, onFeedbackSent }: FeedbackContentStepProps) {
-    
+
     const [comment, setComment] = useState('')
     const [screenshot, setScreenshot] = useState<string | null>(null)
     const feedbackTypeInfo = feedbackTypes[feedbackType]
+    const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
-    function handleSubmitFeedback (event: FormEvent){
+    async function handleSubmitFeedback(event: FormEvent) {
         event.preventDefault();
+        setIsSendingFeedback(true);
+
+        await api.post('/feedbacks', {
+            type: feedbackType,
+            comment,
+            screenshot,
+        })
 
         onFeedbackSent();
+        setIsSendingFeedback(false);
+        console.info("Sucesso!");
+
     }
 
     return (
         <>
             <header>
-                <button type="button" onClick={onFeedbackRestartRequested}>
-                    <ArrowLeft weight="bold" className="w-4 h-4 top-5 left-5 absolute text-zinc-400 hover:text-zinc-100" />
+                <button className="w-4 h-4 top-5 left-5 absolute text-zinc-400 hover:text-zinc-100" type="button" onClick={onFeedbackRestartRequested}>
+                    <ArrowLeft weight="bold" />
                 </button>
                 <span className="text-xl leading-6 flex items-center gap-2">
                     <img src={feedbackTypeInfo.image.source} alt={feedbackTypeInfo.image.alt} className="w-6 h-6" />
@@ -42,18 +55,20 @@ export function FeedbackContentStep({ feedbackType, onFeedbackRestartRequested, 
                     placeholder="Conte com detalhes o que está acontecendo..." />
 
                 <footer className="flex gap-2 mt-2">
-                   <ScreenshotButton 
-                   screenshot={screenshot}
-                   onScreenshotTook={setScreenshot}
-                   />
+                    <ScreenshotButton
+                        screenshot={screenshot}
+                        onScreenshotTook={setScreenshot}
+                    />
+
 
                     <button
-                        disabled={comment.length === 0 ? true : false}
+                        disabled={comment.length === 0 || isSendingFeedback}
                         type="submit"
                         className="p-2 bg-brand-500 rounded-md border-transparent flex-1 flex justify-center items-center text-sm hover:bg-brand-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:ring-brand-500 transition-colors disabled:opacity-50 disabled:hover:bg-brand-500">
 
-                        Enviar Feedback
-                        </button>
+                        {isSendingFeedback ? <Loading /> : 'Enviar Feedback'}
+                    </button>
+
                 </footer>
             </form>
 
